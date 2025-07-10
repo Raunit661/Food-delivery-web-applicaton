@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodExpress - Premium Food Delivery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #ff6b6b;
+            --secondary: #4ecdc4;
+            --dark: #292f36;
+            --light: #f7fff7;
+            --accent: #ff6b6b;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: var(--dark);
+        }
+        
+        .hero-gradient {
+            background: linear-gradient(135deg, rgba(255,107,107,0.9) 0%, rgba(78,205,196,0.9) 100%);
+        }
+        
+        .restaurant-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .menu-item:hover {
+            background-color: rgba(255,107,107,0.05);
+            transform: scale(1.02);
+            transition: transform 0.2s ease, background-color 0.2s ease;
+
+        }
+        
+        .cart-item {
+            transition: all 0.3s ease;
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .order-progress {
+            position: relative;
+        }
+        
+        .order-progress::before {
+            content: '';
+            position: absolute;
+            top: 35px;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #e9ecef;
+            z-index: 1;
+        }
+        
+        .progress-step.active {
+            color: var(--primary);
+        }
+        
+        .progress-step.active::before {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        /* Animation for order tracking */
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .restaurant-card {
+                margin-bottom: 1.5rem;
+            }
+            
+            .menu-section {
+                padding: 1rem;
+            }
+        }
+        
+        /* Notification system */
+        .notification {
+            right: 1rem;
+            bottom: 1rem;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        /* Map placeholder styling */
+        .map-container {
+            height: 300px;
+            background-color: #e9ecef;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .map-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(233,236,239,0.8) 0%, rgba(248,249,250,0.8) 100%);
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="min-h-screen">
+        <!-- Auth Modal -->
+        <div id="authModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+                <div class="flex justify-between items-center p-4 border-b">
+                    <h2 class="text-xl font-bold">Welcome to FoodExpress</h2>
+                    <button onclick="closeAuthModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div class="flex mb-6">
+                        <button id="loginTab" class="flex-1 py-2 font-medium border-b-2 border-primary text-primary">Login</button>
+                        <button id="registerTab" class="flex-1 py-2 font-medium border-b-2 border-gray-200">Register</button>
+                    </div>
+                    
+                    <div id="loginForm">
+                        <div class="mb-4">
+                            <label class="block mb-2 text-sm font-medium">Email</label>
+                            <input type="email" id="loginEmail" class="w-full p-2 border rounded focus:ring-2 focus:ring-primary focus:border-primary">
+                        </div>
+                        <div class="mb-6">
+                            <label class="block mb-2 text-sm font-medium">Password</label>
+                            <input type="password" id="loginPassword" class="w-full p-2 border rounded focus:ring-2 focus:ring-primary focus:border-primary">
+                        </div>
+                        <button onclick="login()" class="w-full bg-primary text-white py-2 rounded hover:bg-opacity-90 transition">Login</button>
+                    </div>
+                    
+                    <div id="registerForm" class="hidden">
+                        <div class="mb-4">
+                            <label class="block mb-2 text-sm font-medium">Full Name</label>
+                            <input type="text" id="registerName" class="w-full p-2 border rounded focus:ring-2 focus:ring-primary focus:border-primary">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block mb-2 text-sm font-medium">Email</label>
+                            <input type="email" id="registerEmail" class="w-full p-2 border rounded focus:ring-2 focus:ring-primary focus:border-primary">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block mb-2 text-sm font-medium">Password</label>
+                            <input type="password" id="registerPassword" class="w-full p-2 border rounded focus:ring-2 focus:ring-primary focus:border-primary">
+                        </div>
+                        <div class="mb-6">
+                            <label class="block mb-2 text-sm font-medium">Confirm Password</label>
+                            <input type="password" id="registerConfirmPassword" class="w-full p-2 border rounded focus:ring-2 focus:ring-primary focus:border-primary">
+                        </div>
+                        <button onclick="register()" class="w-full bg-primary text-white py-2 rounded hover:bg-opacity-90 transition">Create Account</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notification System -->
+        <div id="notification" class="notification fixed hidden flex items-center p-4 bg-white rounded-lg shadow-lg max-w-xs">
+            <div id="notificationIcon" class="mr-3 text-xl"></div>
+            <div>
+                <h3 id="notificationTitle" class="font-bold"></h3>
+                <p id="notificationMessage" class="text-sm"></p>
+            </div>
+            <button onclick="hideNotification()" class="ml-4 text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <!-- Navbar -->
+        <nav class="bg-white shadow-sm sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex">
+                        <div class="flex-shrink-0 flex items-center">
+                            <img src="https://placehold.co/40x40" alt="FoodExpress logo with modern food delivery icon" class="h-8 w-8">
+                            <span class="ml-2 text-xl font-bold text-primary">FoodExpress</span>
+                        </div>
+                        <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                            <a href="#" class="border-primary text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" onclick="showHome()">Home</a>
+                            <a href="#" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" onclick="showRestaurants()">Restaurants</a>
+                            <a href="#" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" onclick="showOrders()">My Orders</a>
+                        </div>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex sm:items-center">
+                        <div class="relative">
+                            <input type="text" id="searchInput" class="border rounded-full py-1 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" placeholder="Search restaurants...">
+                            <button class="absolute right-3 top-1.5 text-gray-400">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <button id="userMenu" class="ml-4 bg-gray-100 rounded-full p-1 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                            <span class="sr-only">User Menu</span>
+                            <div id="userAvatar" class="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        </button>
+                        <div class="ml-4 relative" onclick="toggleCart()">
+                            <button class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span id="cartCount" class="absolute -top-2 -right-2 bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="-mr-2 flex items-center sm:hidden">
+                        <button type="button" id="mobileMenuButton" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" aria-controls="mobile-menu" aria-expanded="false">
+                            <span class="sr-only">Open main menu</span>
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile menu -->
+            <div id="mobileMenu" class="hidden sm:hidden bg-white border-t">
+                <div class="pt-2 pb-3 space-y-1">
+                    <a href="#" class="border-primary text-primary block pl-3 pr-4 py-2 border-l-4 text-base font-medium" onclick="showHome()">Home</a>
+                    <a href="#" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium" onclick="showRestaurants()">Restaurants</a>
+                    <a href="#" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium" onclick="showOrders()">My Orders</a>
+                </div>
+                <div class="pt-4 pb-3 border-t border-gray-200">
+                    <div class="flex items-center px-4">
+                        <div class="flex-shrink-0">
+                            <div id="mobileUserAvatar" class="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        </div>
+                        <div class="ml-3">
+                            <div id="mobileUsername" class="text-base font-medium text-gray-800">Guest</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 space-y-1">
+                        <a href="#" class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100" onclick="openAuthModal()">Sign in</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        
+        <!-- Cart Sidebar -->
+        <div id="cartSidebar" class="fixed top-0 right-0 h-full w-full sm:w-96 bg-white shadow-lg transform translate-x-full transition-transform duration-300 ease-in-out z-40 overflow-y-auto">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-lg font-bold">Your Cart</h3>
+                <button onclick="closeCart()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="cartItems" class="p-4">
+                <p class="text-gray-500 text-center py-8">Your cart is empty</p>
+            </div>
+            <div class="p-4 border-t bg-gray-50">
+                <div class="flex justify-between mb-2">
+                    <span>Subtotal:</span>
+                    <span id="cartSubtotal">$0.00</span>
+                </div>
+                <div class="flex justify-between mb-2">
+                    <span>Delivery Fee:</span>
+                    <span id="deliveryFee">$2.99</span>
+                </div>
+                <div class="flex justify-between mb-4 font-bold">
+                    <span>Total:</span>
+                    <span id="cartTotal">$2.99</span>
+                </div>
+                <button id="checkoutButton" onclick="checkout()" class="w-full bg-primary text-white py-3 rounded-lg hover:bg-opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Checkout
+                </button>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <!-- Home Page -->
+            <div id="homePage">
+                <section class="hero-gradient text-white rounded-lg overflow-hidden mb-8">
+                    <div class="px-6 py-12 sm:py-16 lg:py-20 sm:px-8 lg:px-12">
+                        <div class="max-w-3xl">
+                            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">Delicious Food Delivered to Your Doorstep</h1>
+                            <p class="text-lg sm:text-xl lg:text-xl mb-8">Order from your favorite restaurants and enjoy freshly prepared meals in minutes.</p>
+                            <div class="flex flex-col sm:flex-row gap-4">
+                                <div class="relative flex-grow">
+                                    <input type="text" id="deliveryAddress" class="w-full py-3 px-4 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary" placeholder="Enter your delivery address">
+                                    <button class="absolute right-3 top-3 text-primary">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </button>
+                                </div>
+                                <button class="bg-white text-primary font-bold py-3 px-6 rounded-lg hover:bg-opacity-90 transition">Find Food</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="mb-12">
+                    <h2 class="text-2xl font-bold mb-6">Popular Categories</h2>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                        <div class="bg-white rounded-lg p-4 shadow-sm text-center cursor-pointer hover:shadow-md transition">
+                            <div class="bg-gray-100 rounded-full p-3 w-16 h-16 mx-auto mb-2 flex items-center justify-center">
+                                <i class="fas fa-hamburger text-xl text-primary"></i>
+                            </div>
+                            <p class="font-medium">Burgers</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 shadow-sm text-center cursor-pointer hover:shadow-md transition">
+                            <div class="bg-gray-100 rounded-full p-3 w-16 h-16 mx-auto mb-2 flex items-center justify-center">
+                                <i class="fas fa-pizza-slice text-xl text-primary"></i>
+                            </div>
+                            <p class="font-medium">Pizza</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 shadow-sm text-center cursor-pointer hover:shadow-md transition">
+                            <div class="bg-gray-100 rounded-full p-3 w-16 h-16 mx-auto mb-2 flex items-center justify-center">
+                                <i class="fas fa-drumstick-bite text-xl text-primary"></i>
+                            </div>
+                            <p class="font-medium">Chicken</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 shadow-sm text-center cursor-pointer hover:shadow-md transition">
+                            <div class="bg-gray-100 rounded-full p-3 w-16 h-16 mx-auto mb-2 flex items-center justify-center">
+                                <i class="fas fa-fish text-xl text-primary"></i>
+                            </div>
+                            <p class="font-medium">Sushi</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 shadow-sm text-center cursor-pointer hover:shadow-md transition">
+                            <div class="bg-gray-100 rounded-full p-3 w-16 h-16 mx-auto mb-2 flex items-center justify-center">
+                                <i class="fas fa-leaf text-xl text-primary"></i>
+                            </div>
+                            <p class="font-medium">Salads</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="mb-12">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold">Nearby Restaurants</h2>
+                        <a href="#" class="text-primary font-medium" onclick="showRestaurants()">View All</a>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="restaurant-card bg-white rounded-lg overflow-hidden shadow-sm cursor-pointer transition" onclick="showRestaurantDetails('restaurant1')">
+                            <img src="https://placehold.co/600x400" alt="Burger Palace restaurant storefront with neon sign" class="w-full h-48 object-cover">
+                            <div class="p-4">
+                                <div class="flex justify-between items-start">
+                                    <h3 class="font-bold text-lg">Burger Palace</h3>
+                                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">4.5 ★</span>
+                                </div>
+                                <p class="text-gray-500 text-sm mb-2">American • Fast Food • Burgers</p>
+                                <p class="text-gray-400 text-xs"><i class="fas fa-clock mr-1"></i> 15-25 min • <i class="fas fa-dollar-sign mr-1"></i> Free delivery</p>
+                            </div>
+                        </div>
+                        <div class="restaurant-card bg-white rounded-lg overflow-hidden shadow-sm cursor-pointer transition" onclick="showRestaurantDetails('restaurant2')">
+                            <img src="https://placehold.co/600x400" alt="Pizza Heaven interior with wood-fired oven and hanging garlic" class="w-full h-48 object-cover">
+                            <div class="p-4">
+                                <div class="flex justify-between items-start">
+                                    <h3 class="font-bold text-lg">Pizza Heaven</h3>
+                                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">4.7 ★</span>
+                                </div>
+                                <p class="text-gray-500 text-sm mb-2">Italian • Pizza • Pasta</p>
+                                <p class="text-gray-400 text-xs"><i class="fas fa-clock mr-1"></i> 20-30 min • <i class="fas fa-dollar-sign mr-1"></i> $1.99 delivery</p>
+                            </div>
+                        </div>
+                        <div class="restaurant-card bg-white rounded-lg overflow-hidden shadow-sm cursor-pointer transition" onclick="showRestaurantDetails('restaurant3')">
+                            <img src="https://placehold.co/600x400" alt="Sushi Master chef preparing rolls with fresh ingredients" class="w-full h-48 object-cover">
+                            <div class="p-4">
+                                <div class="flex justify-between items-start">
+                                    <h3 class="font-bold text-lg">Sushi Master</h3>
+                                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">4.8 ★</span>
+                                </div>
+                                <p class="text-gray-500 text-sm mb-2">Japanese • Sushi • Asian</p>
+                                <p class="text-gray-400 text-xs"><i class="fas fa-clock mr-1"></i> 25-35 min • <i class="fas fa-dollar-sign mr-1"></i> $2.99 delivery</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            
+            <!-- Restaurants Page -->
+            <div id="restaurantsPage" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">All Restaurants</h2>
+                    <div class="flex items-center space-x-2">
+                        <select id="sortSelect" class="border rounded-lg py-1 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
+                            <option value="rating">Sort by Rating</option>
+                            <option value="delivery_time">Sort by Delivery Time</option>
+                            <option value="price">Sort by Price</option>
+                        </select>
+                        <button class="bg-primary text-white p-2 rounded-lg">
+                            <i class="fas fa-filter"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Restaurant cards will be loaded here dynamically -->
+                </div>
+            </div>
+            
+            <!-- Restaurant Details Page -->
+            <div id="restaurantPage" class="hidden">
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+                    <img id="restaurantCover" src="https://placehold.co/1200x400" alt="Restaurant interior showcasing culinary atmosphere" class="w-full h-64 sm:h-80 object-cover">
+                    <div class="p-6">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4">
+                            <div class="mb-4 sm:mb-0">
+                                <h2 id="restaurantName" class="text-2xl font-bold">Restaurant Name</h2>
+                                <p id="restaurantCuisine" class="text-gray-500">Cuisine Type • Price Range</p>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="bg-green-100 text-green-800 px-3 py-1 rounded-full flex items-center">
+                                    <span id="restaurantRating">4.5</span>
+                                    <i class="fas fa-star ml-1"></i>
+                                </div>
+                                <button id="favoriteButton" class="ml-4 text-gray-400 hover:text-primary">
+                                    <i class="far fa-heart"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p id="restaurantDescription" class="mb-6">Restaurant description goes here...</p>
+                        <div class="flex flex-wrap gap-4 mb-6">
+                            <div class="flex items-center text-gray-600">
+                                <i class="fas fa-clock mr-2"></i>
+                                <span id="restaurantDeliveryTime">15-25 min</span>
+                            </div>
+                            <div class="flex items-center text-gray-600">
+                                <i class="fas fa-dollar-sign mr-2"></i>
+                                <span id="restaurantDeliveryFee">$2.99 delivery</span>
+                            </div>
+                            <div class="flex items-center text-gray-600">
+                                <i class="fas fa-map-marker-alt mr-2"></i>
+                                <span id="restaurantDistance">0.8 miles</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex mb-6">
+                    <button id="menuTab" class="px-4 py-2 font-medium border-b-2 border-primary text-primary">Menu</button>
+                    <button id="reviewsTab" class="px-4 py-2 font-medium border-b-2 border-transparent">Reviews</button>
+                    <button id="infoTab" class="px-4 py-2 font-medium border-b-2 border-transparent">Info</button>
+                </div>
+                
+                <div id="menuSection">
+                    <!-- Menu categories and items will be loaded here dynamically -->
+                </div>
+                
+                <div id="reviewsSection" class="hidden">
+                    <div class="flex mb-6">
+                        <div class="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center mr-4">
+                            <div class="text-center">
+                                <div class="text-3xl font-bold" id="restaurantAvgRating">4.5</div>
+                                <div class="flex justify-center">
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                    <i class="fas fa-star-half-alt text-yellow-400"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center mb-1">
+                                <span class="w-16 text-gray-600">5 stars</span>
+                                <div class="w-full bg-gray-200 rounded-full h-2 ml-2">
+                                    <div class="bg-yellow-400 h-2 rounded-full" style="width: 80%"></div>
+                                </div>
+                                <span class="ml-2 text-sm text-gray-500">80%</span>
+                            </div>
+                            <div class="flex items-center mb-1">
+                                <span class="w-16 text-gray-600">4 stars</span>
+                                <div class="w-full bg-gray-200 rounded-full h-2 ml-2">
+                                    <div class="bg-yellow-400 h-2 rounded-full" style="width: 15%"></div>
+                                </div>
+                                <span class="ml-2 text-sm text-gray-500">15%</span>
+                            </div>
+                            <div class="flex items-center mb-1">
+                                <span class="w-16 text-gray-600">3 stars</span>
+                                <div class="w-full bg-gray-200 rounded-full h-2 ml-2">
+                                    <div class="bg-yellow-400 h-2 rounded-full" style="width: 3%"></div>
+                                </div>
+                                <span class="ml-2 text-sm text-gray-500">3%</span>
+                            </div>
+                            <div class="flex items-center mb-1">
+                                <span class="w-16 text-gray-600">2 stars</span>
+                                <div class="w-full bg-gray-200 rounded-full h-2 ml-2">
+                                    <div class="bg-yellow-400 h-2 rounded-full" style="width: 1%"></div>
+                                </div>
+                                <span class="ml-2 text-sm text-gray-500">1%</span>
+                            </div>
+                            <div class="flex items-center mb-1">
+                                <span class="w-16 text-gray-600">1 star</span>
+                                <div class="w-full bg-gray-200 rounded-full h-2 ml-2">
+                                    <div class="bg-yellow-400 h-2 rounded-full" style="width: 1%"></div>
+                                </div>
+                                <span class="ml-2 text-sm text-gray-500">1%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="showReviewForm()" class="mb-6 bg-primary text-white py-2 px-4 rounded-lg hover:bg-opacity-90 transition">
+                        <i class="fas fa-edit mr-2"></i> Write a Review
+                    </button>
+                    
+                    <div id="reviewsList">
+                        <!-- Reviews will be loaded here dynamically -->
+                    </div>
+                </div>
+                
+                <div id="infoSection" class="hidden">
+                    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                        <h3 class="text-lg font-bold mb-4">About</h3>
+                        <p id="restaurantAbout" class="mb-4">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl, eget lacinia nisl nisl sit amet nisl. Sed euismod, nisl vel ultricies lacinia.</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <h4 class="font-medium mb-2">Opening Hours</h4>
+                                <ul id="restaurantHours">
+                                    <li class="flex justify-between">
+                                        <span>Monday</span>
+                                        <span>10:00 AM - 10:00 PM</span>
+                                    </li>
+                                    <li class="flex justify-between">
+                                        <span>Tuesday</span>
+                                        <span>10:00 AM - 10:00 PM</span>
+                                    </li>
+                                    <li class="flex justify-between">
+                                        <span>Wednesday</span>
+                                        <span>10:00 AM - 10:00 PM</span>
+                                    </li>
+                                    <li class="flex justify-between">
+                                        <span>Thursday</span>
+                                        <span>10:00 AM - 10:00 PM</span>
+                                    </li>
+                                    <li class="flex justify-between">
+                                        <span>Friday</span>
+                                        <span>10:00 AM - 11:00 PM</span>
+                                    </li>
+                                    <li class="flex justify-between">
+                                        <span>Saturday</span>
+                                        <span>10:00 AM - 11:00 PM</span>
+                                    </li>
+                                    <li class="flex justify-between">
+                                        <span>Sunday</span>
+                                        <span>10:00 AM - 10:00 PM</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-medium mb-2">Location</h4>
+                                <p id="restaurantAddress" class="mb-2">123 Main Street, City, State 12345</p>
+                                <div class="map-container">
+                                    <div class="map-placeholder">
+                                        <i class="fas fa-map-marker-alt text-4xl text-primary"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Orders Page -->
+            <div id="ordersPage" class="hidden">
+                <h2 class="text-2xl font-bold mb-6">My Orders</h2>
+                
+                <div class="tabs flex border-b mb-6">
+                    <button id="activeOrdersTab" class="px-4 py-2 font-medium border-b-2 border-primary text-primary">Active</button>
+                    <button id="pastOrdersTab" class="px-4 py-2 font-medium border-b-2 border-transparent">Past Orders</button>
+                </div>
+                
+                <div id="activeOrdersSection">
+                    <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+                        <div class="p-4 border-b flex justify-between items-center">
+                            <div>
+                                <div class="flex items-center mb-1">
+                                    <h3 class="font-bold">Order #12345</h3>
+                                    <span class="ml-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">In Progress</span>
+                                </div>
+                                <p class="text-sm text-gray-500">Placed on May 15, 2023 at 6:30 PM</p>
+                            </div>
+                            <button onclick="showOrderDetails('order12345')" class="text-primary text-sm font-medium">View Details</button>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex mb-4">
+                                <img src="https://placehold.co/80x80" alt="Burger Palace logo with burger icon" class="w-12 h-12 rounded-full object-cover mr-3">
+                                <div>
+                                    <h4 class="font-medium">Burger Palace</h4>
+                                    <p class="text-sm text-gray-500">2 items • $24.98</p>
+                                </div>
+                            </div>
+                            
+                            <div class="order-progress pt-2 pb-6 mb-4">
+                                <div class="flex justify-between">
+                                    <div class="progress-step active text-center">
+                                        <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mx-auto mb-1">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                        <p class="text-xs">Order Placed</p>
+                                    </div>
+                                    <div class="progress-step active text-center">
+                                        <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mx-auto mb-1">
+                                            <i class="fas fa-bread-slice"></i>
+                                        </div>
+                                        <p class="text-xs">Preparing</p>
+                                    </div>
+                                    <div class="progress-step text-center">
+                                        <div class="w-8 h-8 rounded-full border-2 border-gray-300 text-gray-300 flex items-center justify-center mx-auto mb-1">
+                                            <i class="fas fa-motorcycle"></i>
+                                        </div>
+                                        <p class="text-xs">Delivery</p>
+                                    </div>
+                                    <div class="progress-step text-center">
+                                        <div class="w-8 h-8 rounded-full border-2 border-gray-300 text-gray-300 flex items-center justify-center mx-auto mb-1">
+                                            <i class="fas fa-home"></i>
+                                        </div>
+                                        <p class="text-xs">Delivered</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between">
+                                <button class="text-primary font-medium text-sm">Contact Driver</button>
+                                <button class="text-primary font-medium text-sm" onclick="trackOrder('order12345')">Track Order</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="pastOrdersSection" class="hidden">
+                    <!-- Past orders will be loaded here dynamically -->
+                </div>
+            </div>
+            
+            <!-- Order Details Page -->
+            <div id="orderDetailsPage" class="hidden">
+                <button onclick="showOrders()" class="flex items-center text-primary mb-6">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Orders
+                </button>
+                
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+                    <div class="p-4 border-b">
+                        <div class="flex justify-between items-center mb-2">
+                            <h2 class="text-xl font-bold">Order #12345</h2>
+                            <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm">In Progress</span>
+                        </div>
+                        <p class="text-sm text-gray-500">Placed on May 15, 2023 at 6:30 PM</p>
+                    </div>
+                    
+                    <div class="p-4 border-b">
+                        <div class="flex mb-4">
+                            <img src="https://placehold.co/80x80" alt="Burger Palace logo with burger icon" class="w-12 h-12 rounded-full object-cover mr-3">
+                            <div class="flex-1">
+                                <h3 class="font-bold">Burger Palace</h3>
+                                <p class="text-sm text-gray-500">123 Main Street, Springfield</p>
+                            </div>
+                            <button class="text-primary text-sm font-medium">
+                                <i class="fas fa-phone-alt mr-1"></i> Call
+                            </button>
+                        </div>
+                        
+                        <div class="order-progress pt-2 pb-6">
+                            <div class="flex justify-between">
+                                <div class="progress-step active text-center">
+                                    <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mx-auto mb-1">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <p class="text-xs">Order Placed</p>
+                                </div>
+                                <div class="progress-step active text-center">
+                                    <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mx-auto mb-1">
+                                        <i class="fas fa-bread-slice"></i>
+                                    </div>
+                                    <p class="text-xs">Preparing</p>
+                                </div>
+                                <div class="progress-step text-center">
+                                    <div class="w-8 h-8 rounded-full border-2 border-gray-300 text-gray-300 flex items-center justify-center mx-auto mb-1">
+                                        <i class="fas fa-motorcycle"></i>
+                                    </div>
+                                    <p class="text-xs">Delivery</p>
+                                </div>
+                                <div class="progress-step text-center">
+                                    <div class="w-8 h-8 rounded-full border-2 border-gray-300 text-gray-300 flex items-center justify-center mx-auto mb-1">
+                                        <i class="fas fa-home"></i>
+                                    </div>
+                                    <p class="text-xs">Delivered</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4">
+                        <h3 class="font-bold mb-4">Your Items</h3>
+                        <div class="space-y-4 mb-6">
+                            <div class="flex justify-between">
+                                <div class="flex">
+                                    <span class="bg-gray-100 px-2 py-1 rounded-full text-xs mr-3">1x</span>
+                                    <div>
+                                        <p class="font-medium">Classic Burger</p>
+                                        <p class="text-sm text-gray-500">Lettuce, Tomato, Onion</p>
+                                    </div>
+                                </div>
+                                <span>$8.99</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <div class="flex">
+                                    <span class="bg-gray-100 px-2 py-1 rounded-full text-xs mr-3">1x</span>
+                                    <div>
+                                        <p class="font-medium">Cheese Fries</p>
+                                        <p class="text-sm text-gray-500">Large</p>
+                                    </div>
+                                </div>
+                                <span>$5.99</span>
+                            </div>
+                        </div>
+                        
+                        <div class="border-t pt-4">
+                            <div class="flex justify-between mb-2">
+                                <span>Subtotal</span>
+                                <span>$14.98</span>
+                            </div>
+                            <div class="flex justify-between mb-2">
+                                <span>Delivery Fee</span>
+                                <span>$2.99</span>
+                            </div>
+                            <div class="flex justify-between mb-2">
+                                <span>Service Fee</span>
+                                <span>$1.00</span>
+                            </div>
+                            <div class="flex justify-between font-bold text-lg">
+                                <span>Total</span>
+                                <span>$18.97</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+                    <div class="p-4 border-b">
+                        <h3 class="font-bold">Delivery Details</h3>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex mb-4">
+                            <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                                <i class="fas fa-motorcycle text-gray-400"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">John D.</p>
+                                <p class="text-sm text-gray-500">Estimated delivery: 6:55 PM</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center mb-4">
+                            <i class="fas fa-map-marker-alt text-gray-400 mr-2"></i>
+                            <span class="text-sm text-gray-500">123 Main Street, Springfield</span>
+                        </div>
+                        <div class="flex items-center mb-4">
+                            <i class="fas fa-phone-alt text-gray-400 mr-2"></i>
+                            <span class="text-sm text-gray-500">+1 (555) 123-4567</span>
+                            <img src="" alt="" sizes="600*400" srcset="">
+                        </div>
+                    
+
+
+
+
+                        
+                            
